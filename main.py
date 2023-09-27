@@ -2,6 +2,7 @@
 import random
 import string
 import math
+import json
 
 # useful sources:
 # - https://en.wikipedia.org/wiki/Terrestrial_planet
@@ -70,12 +71,13 @@ def generate_system():
 
 
 # generate the whole galaxy
-# lets just make a chunk of space, say... 1000 x 1000 'units'
+# lets just make a chunk of space, say... 200 x 200 'units' (we can make this bigger)
 # each 'unit' can hold one and only one system, otherwise its 'empty'
-galaxy_width = 1000
-galaxy_height = 1000
+galaxy_width = 200
+galaxy_height = 200
 galaxy = {}
 
+print('generating output...')
 for y in range(galaxy_height):
     for x in range(galaxy_width):
         # lets say 30% chance to add a system
@@ -83,6 +85,8 @@ for y in range(galaxy_height):
             name, data = generate_system()
             galaxy[name] = { 'position': (x, y), 'data': data }
 
+# overwrites on subsequent runs
+print(json.dumps(galaxy), file=open('system.json', 'wt+'))
 
 for name, system in galaxy.items():
 
@@ -102,3 +106,5 @@ for name, system in galaxy.items():
         print('   -  radius: %0.4Em  (%0.2f REarth)' % (system_object['radius'], system_object['radius'] / 6.378e6))
         print('   - density: %0.4f g/cm^3' % system_object['density'])
     print()
+
+print('number of systems:', len(galaxy))
