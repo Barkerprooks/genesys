@@ -11,100 +11,123 @@ import json
 # - https://nssdc.gsfc.nasa.gov/planetary/factsheet
 # - https://en.wikipedia.org/wiki/ROXs_42Bb
 # - https://www.pnas.org/doi/10.1073/pnas.1812905116
-# - http://exoplanet.eu/diagrams/
 # - https://homepage.divms.uiowa.edu/~mbognar/applets/normal.html
 # - https://www.daviddarling.info/encyclopedia/M/mass-radius_relation.html
+# - https://www.livescience.com/do-gaseous-moons-exist
 # note: it appears most exo planets a lot of planets are larger than earth by 2 orders of magnitude (in Meaths) 
 
 
-def random_string(length): # simple name generator for now
-    return ''.join(random.choice(string.ascii_uppercase) for _ in range(length)) # TODO
+# - http://exoplanet.eu/diagrams/
 
 
-def random_digits(length): # generate random digits in string form
-    return ''.join(random.choice(string.digits) for _ in range(length)).zfill(length) # zfill for leading zeros
+G = 6.674e-11
+MEARTH_UNIT = 5.9e24
+REARTH_UNIT = 6.378e6
 
 
-def generate_system():
-
-    # first, we need to know the amount of mass that will be used to create the system
-    mass = random.uniform(1e30, 1e31) # give enough material to create a star and then some
-    star_mass = mass * 0.9997 # stars take up most of the mass in their system
-    star_radius = ((star_mass / 1.989e30) ** 0.8) * 6.957e8 # equation for main seq star radius from mass
-    name = random_string(3) # 3 letter random names are pretty classic
-
-    # now we can use a while-loop to dish out the rest of the mass
-    objects = [] # create an empty array to store all the stellar objects
-    mass -= star_mass # subtract the star mass from the mass our planets will be made of
-    while mass > 0: # while we still have usable mass, and have a hard cut at 8 objects
-        object_name = f'{name}{random_digits(4)}' # object name is just system name with numbers
-        object_mass = (0.1 + (15000 - 0.1) * random.betavariate(0.2, 8)) * 5.9e24 # RNG mass 5.9e24 is AROUND MEarth in kg. using normal distribution
-        object_radius = (0.1 + (20 - 0.1) * random.betavariate(2, 2)) * 6.378e6 # RNG radius 6.378e6 is AROUND REarth in meters
-
-        if object_mass > mass: # use up the rest of the mass if it overflows
-            object_mass = mass
-        
-        mass = mass - object_mass # update usable mass
-
-        # 1/1000 chance to mutate by mass and turn into a black hole
-        if random.randint(0, 999) == 1:
-            object_mass += random.uniform(1e64, 1e65) # add enough ghost mass to make it super dense
-
-        density = object_mass / (0.75 * math.pi * object_radius ** 3) # calculate the density to see what it becomes in kg/m^3 
-
-        object_type = 'Terrestrial'
-        if density < 2000:
-            object_type = 'Gas Giant'
-        elif density > 2e19:
-            object_type = 'Black Hole'
-
-        # we are adding a dict to a list
-        objects.append({
-            'type': object_type,
-            'density': density / 1000,
-            'mass': object_mass,
-            'name': object_name,
-            'radius': object_radius
-        })
-
-    return name, { 'star': { 'mass': star_mass, 'radius': star_radius }, 'objects': objects }
+def random_string(length, exists): # simple name generator for now
+    rng = ''.join(random.choice(string.ascii_uppercase) for _ in range(length))
+    if rng in exists:
+        return random_digits(length, exists)
+    exists.add(rng)
+    return rng
 
 
-# generate the whole galaxy
-# lets just make a chunk of space, say... 200 x 200 'units' (we can make this bigger)
-# each 'unit' can hold one and only one system, otherwise its 'empty'
-galaxy_width = 200
-galaxy_height = 200
-galaxy = {}
+def random_digits(length, exists): # generate random digits in string form
+    rng = ''.join(random.choice(string.digits) for _ in range(length)).zfill(length) # zfill for leading zeros
+    if rng in exists:
+        return random_digits(length, exists)
+    exists.add(rng)
+    return rng
 
-print('generating output...')
-for y in range(galaxy_height):
-    for x in range(galaxy_width):
-        # lets say 30% chance to add a system
-        if random.randint(0, 100) <= 30:
-            name, data = generate_system()
-            galaxy[name] = { 'position': (x, y), 'data': data }
+# convert one dimensional array index into a two dimensional array index
+# imagine an array [0, 1, 2, 3, 4, 5]
+# if it was converted into a 2d array with a width of 3 it would be:
+# [[0, 1, 2],
+#  [3, 4, 5]] you can think of this form like a grid, with the y values
+# starting at the top, and growing towards the bottom. and x values that
+# start on the left and grow towards the right.
 
-# overwrites on subsequent runs
-print(json.dumps(galaxy), file=open('system.json', 'wt+'))
+# this function basically maps what the index in a 1D array would be in the 2D grid
+def into_2d(i, width):
+    # x is modulo width because it requires the repeating sequence of values up to the width
+    # for each set of x values, there is one y value in this relationship (like an actual graph)
+    # therefore we just need the closest floor rounded integer of how many times greater than
+    # the width the y value is.
+    return int(i % width), int(i // width) # duh!
 
-for name, system in galaxy.items():
 
-    data = system['data']
-    star = data['star']
-    objects = data['objects']
+# normalize parameter will renomralize RNG based on a passed in value (simply multiplies it by that value)
+def rng(low, high, alpha, beta, normalize=None):
+    return (low + (high - low) * random.betavariate(alpha, beta)) * (1 if normalize is None else normalize)
 
-    print('system: ', name)
-    print('coordinates: (x: %s, y: %s)' % system['position'])
-    print(' -   star mass: %0.4Ekg (%0.2f MSun)' % (star['mass'], star['mass'] / 1.9891e30))
-    print(' - star radius: %0.4Em  (%0.2f RSun)' % (star['radius'], star['radius'] / 6.957e8))
-    print('objects:', len(objects))
-    for system_object in objects:
-        print('  object:', system_object['name'])
-        print('   -    type:', system_object['type'])
-        print('   -    mass: %0.4Ekg (%0.2f MEarth)' % (system_object['mass'], system_object['mass'] / 5.9e24))
-        print('   -  radius: %0.4Em  (%0.2f REarth)' % (system_object['radius'], system_object['radius'] / 6.378e6))
-        print('   - density: %0.4f g/cm^3' % system_object['density'])
-    print()
 
-print('number of systems:', len(galaxy))
+def generate_object(usable_mass):
+        mass = rng(0.0001, 18000, 0.2, 10, normalize=MEARTH_UNIT) # range of 0.0001 to 18000 times earth
+        radius = rng(0.01, 21, 2, 5, normalize=REARTH_UNIT) # range of 0.5 to 20 times earth
+        density = mass / (0.75 * math.pi * radius ** 3) # calculate the density to see what it becomes in kg/m^3 
+        return { # return a dict of the object
+            'mass': mass if mass < usable_mass else usable_mass, # dont go over that usable mass
+            'type': 'Terrestrial' if density > 1800 else 'Black Hole' if density > 2e19 else 'Gas Giant',
+            'radius': radius,
+            'density': density / 1000 # g/cm^2
+        }
+
+
+def generate_system(x, y, name):
+    usable_mass = random.uniform(1e30, 1e31) # give enough material to create a star and then some
+    core_mass = usable_mass * (0.997 + random.uniform(0.0001, 0.0009))
+    star = { 'mass': core_mass, 'radius': ((core_mass / 1.989e30) ** 0.8) * 6.957e8 } # calculate radius of star from mass
+
+    usable_mass -= core_mass # subtract the star mass from the mass our planets will be made of
+    object_ids = set()
+    objects = {} # create an empty array to store all the stellar objects
+    while usable_mass > 0: # use up the remaining mass
+        object_id = random_digits(4, object_ids) # 4 digit UNIQUE random number for the object created
+        objects[object_id] = generate_object(usable_mass)
+        usable_mass -= objects[object_id]['mass'] # update usable mass
+
+    distance = rng(7000000, 90000000, 2, 8) # start from minimum of PROXIMA CENTAURI B to max of earth distance
+    orbit_ids = list(objects.keys())
+    orbits = { orbit_ids[0]: [] }
+    objects[orbit_ids[0]]['distance'] = distance
+
+    last_object_index = 0
+    for i in range(1, len(orbit_ids)):
+
+        last_object_id = orbit_ids[last_object_index]
+        last_object = objects[last_object_id]
+
+        distance += rng(200000, 1000000, 0.5, 0.5)
+
+        object_id = orbit_ids[i]
+
+        g_star = G * (objects[object_id]['mass'] * core_mass) / distance ** 2
+        g_last = G * (objects[object_id]['mass'] * last_object['mass']) / (distance - last_object['distance']) ** 2
+
+        if g_last > g_star and objects[object_id]['mass'] < last_object['mass']:
+            objects[object_id]['distance'] = distance - last_object['distance']
+            orbits[last_object_id].append(object_id)
+        else:
+            objects[object_id]['distance'] = distance
+            orbits[object_id] = []
+            last_object_index = i
+
+    return { 'name': name, 'coordinates': (x, y), 'star': star, 'objects': objects, 'orbits': orbits }
+
+
+def generate_galaxy(cells):
+    system_names = set()
+    width = math.sqrt(cells)
+    galaxy = []
+    for i in range(cells):
+        if random.randint(0, 100) <= 8: # 8% chance to get a system
+            x, y = into_2d(i, width) # use the x / y decomposition of i
+            name = random_string(4, system_names) # just use 3 letter UNIQUE names for now
+            galaxy.append(generate_system(x, y, name))
+    return json.dumps(galaxy)
+
+
+galaxy = generate_galaxy(100000)
+print(galaxy)
+print(galaxy, file=open('galaxy.json', 'wt+'))
