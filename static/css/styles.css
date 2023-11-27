@@ -1,0 +1,35 @@
+#viewport {
+    border: 1px solid black;
+    border-radius: 5px;
+    margin: 5vh auto;
+    display: block;
+    background: #1e1e1e;
+}
+
+#activate {
+    display: block;
+    margin: 25px auto;
+    padding: 15px;
+    background: goldenrod;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: lightgrey;
+}
+
+#activate:hover {
+    color: white;
+}
+
+#activate:active {
+    color: yellow;
+}
+
+#inputs {
+    text-align: center;
+}
+
+#input {
+    margin: 15px 0;
+}

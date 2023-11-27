@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="static/css/styles.css" />
+        <title>genesys</title>
+    </head>
+    <body>
+        <canvas id="viewport" width="500" height="500"></canvas>
+        <div id="inputs">
+            <div id="input">
+                <label>Number of stars n: </label>
+                <input id="n-input" value="6200" style="width: 7ch" />
+                <span>Stars</span>
+            </div>
+            <div id="input">
+                <label>Diameter of Galaxy: </label>
+                <input id="d-input" value="250" style="width: 5ch" />
+                <span>Cells</span>
+            </div>
+            <div id="input">
+                <label>Spiral Angle Φ: </label>
+                <input id="phi-input" value="0.62" style="width: 5ch" step="0.01" />
+                <span>° (0.4 - 0.8)</span>
+            </div>
+            <button id="activate">GENERATE GALAXY</button>
+        </div>
+        <script src="static/js/main.js"></script>
+    </body>
+</html>
