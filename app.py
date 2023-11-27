@@ -50,5 +50,5 @@ def galaxy(option=None):
 
 
 if __name__ == "__main__":
-    #webbrowser.open_new_tab('http://127.0.0.1:3333')
+    webbrowser.open_new_tab('http://127.0.0.1:3333')
     app.run(port=3333, debug=True)
